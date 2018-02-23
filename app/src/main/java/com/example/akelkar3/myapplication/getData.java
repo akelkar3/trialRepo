@@ -11,6 +11,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -110,73 +111,56 @@ public class getData  extends AsyncTask<String, Void, ArrayList<NewsItem>> {
     public ArrayList<NewsItem> parseFeed(InputStream inputStream) throws XmlPullParserException,
             IOException {
         String title = null;
-        String link = null;
+       String link = null;
         String publishedAt=null;
         String description = null;
         boolean isItem = false;
         ArrayList<NewsItem> items = new ArrayList<>();
+        NewsItem item=null;
 
         try {
-            XmlPullParser xmlPullParser = Xml.newPullParser();
-            xmlPullParser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            xmlPullParser.setInput(inputStream, null);
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            XmlPullParser parser = factory.newPullParser();
+          //  xmlPullParser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(inputStream, "UTF-8");
 
-            xmlPullParser.nextTag();
-            Log.d(TAG, "parseFeed: parsed stream");
-            while (xmlPullParser.next() != XmlPullParser.END_DOCUMENT) {
-                int eventType = xmlPullParser.getEventType();
+int event = parser.getEventType();
+while(event!= XmlPullParser.END_DOCUMENT){
+    switch (event){
+        case XmlPullParser.START_TAG:
 
-                String name = xmlPullParser.getName();
-                if(name == null)
-                    continue;
-
-                if(eventType == XmlPullParser.END_TAG) {
-                    if(name.equalsIgnoreCase("item")) {
-                        isItem = false;
-                    }
-                    continue;
+            if (parser.getName().equals("item")){
+                item=new NewsItem();
+                isItem=true;
+            }else  if (isItem && parser.getName().equals("title")){
+                item.title= parser.nextText().trim();
+            }else  if (isItem && parser.getName().equals("media:content")){
+                if (link==null){
+                  link= parser.getAttributeValue(1);
+               item.urlToImage=link;
                 }
-
-                if (eventType == XmlPullParser.START_TAG) {
-                    if(name.equalsIgnoreCase("item")) {
-                        isItem = true;
-                        continue;
-                    }
-                }
-
-                Log.d("MyXmlParser", "Parsing name ==> " + name);
-                String result = "";
-                if (xmlPullParser.next() == XmlPullParser.TEXT) {
-                    result = xmlPullParser.getText();
-                    xmlPullParser.nextTag();
-                }
-                Log.d(TAG, "parseFeed: name");
-                if (name.equalsIgnoreCase("title")) {
-                    title = result;
-                } else if (name.equalsIgnoreCase("urlToImage")) {
-                    link = result;
-                } else if (name.equalsIgnoreCase("description")) {
-                    description = result;
-                }else if (name.equalsIgnoreCase("publishedAt")) {
-                    publishedAt = result;
-                }
-
-                if (title != null && link != null && description != null) {
-                    if(isItem) {
-                        NewsItem item = new NewsItem();
-                        item.title=title;
-                        item.description=description;
-                        item.urlToImage=link;
-                        items.add(item);
-                    }
-
-
-                    title = null;
-                    link = null;
-                    description = null;
-                    isItem = false;
-                }
+            }else  if (isItem && parser.getName().equals("description")){
+                item.description= parser.nextText().trim().split("<")[0];
+            }else  if (isItem && parser.getName().equals("pubDate")){
+                item.publishedAt= parser.nextText().trim();
             }
+          //  Log.d(TAG, "parseFeed: ===>" + parser.getName());
+            break;
+
+        case XmlPullParser.END_TAG:
+            if (parser.getName().equals("item")){
+            items.add(item);
+                isItem=false;
+                link=null;
+        }
+            break;
+        default:
+            break;
+
+    }
+    event=parser.next();
+
+}
 
             return items;
         } finally {
