@@ -3,14 +3,18 @@ package com.example.akelkar3.myapplication;
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.util.Xml;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -46,27 +50,8 @@ public class getData  extends AsyncTask<String, Void, ArrayList<NewsItem>> {
             connection.connect();
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 //reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String json = IOUtils.toString(connection.getInputStream(), "UTF8");
+                result = parseFeed(connection.getInputStream());
 
-                JSONObject root = new JSONObject(json);
-                JSONArray newsitems = root.getJSONArray("articles");
-                for (int i=0;i<newsitems.length();i++) {
-                    JSONObject newsItemJson = newsitems.getJSONObject(i);
-
-                    NewsItem newsItem = new NewsItem();
-
-
-                    newsItem.title = newsItemJson.getString("title");
-                    newsItem.publishedAt = newsItemJson.getString("publishedAt");
-                    newsItem.description = newsItemJson.getString("description");
-                    newsItem.urlToImage = newsItemJson.getString("urlToImage");
-
-
-                    result.add(newsItem);
-
-                    //   result = stringBuilder.toString();
-
-                }
 
             }
             Log.d(TAG, "result "+result.toString());
@@ -77,9 +62,8 @@ public class getData  extends AsyncTask<String, Void, ArrayList<NewsItem>> {
         } catch (IOException e) {
             e.printStackTrace();
             Log.d(TAG, "doInBackground: "+e.getMessage());
-        } catch (JSONException e) {
+        } catch (XmlPullParserException e) {
             e.printStackTrace();
-            Log.d(TAG, "doInBackground: "+e.getMessage());
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -121,5 +105,82 @@ public class getData  extends AsyncTask<String, Void, ArrayList<NewsItem>> {
     }
     public static  interface IData{
         public void handleData(ArrayList<NewsItem> data);
+    }
+
+    public ArrayList<NewsItem> parseFeed(InputStream inputStream) throws XmlPullParserException,
+            IOException {
+        String title = null;
+        String link = null;
+        String publishedAt=null;
+        String description = null;
+        boolean isItem = false;
+        ArrayList<NewsItem> items = new ArrayList<>();
+
+        try {
+            XmlPullParser xmlPullParser = Xml.newPullParser();
+            xmlPullParser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            xmlPullParser.setInput(inputStream, null);
+
+            xmlPullParser.nextTag();
+            Log.d(TAG, "parseFeed: parsed stream");
+            while (xmlPullParser.next() != XmlPullParser.END_DOCUMENT) {
+                int eventType = xmlPullParser.getEventType();
+
+                String name = xmlPullParser.getName();
+                if(name == null)
+                    continue;
+
+                if(eventType == XmlPullParser.END_TAG) {
+                    if(name.equalsIgnoreCase("item")) {
+                        isItem = false;
+                    }
+                    continue;
+                }
+
+                if (eventType == XmlPullParser.START_TAG) {
+                    if(name.equalsIgnoreCase("item")) {
+                        isItem = true;
+                        continue;
+                    }
+                }
+
+                Log.d("MyXmlParser", "Parsing name ==> " + name);
+                String result = "";
+                if (xmlPullParser.next() == XmlPullParser.TEXT) {
+                    result = xmlPullParser.getText();
+                    xmlPullParser.nextTag();
+                }
+                Log.d(TAG, "parseFeed: name");
+                if (name.equalsIgnoreCase("title")) {
+                    title = result;
+                } else if (name.equalsIgnoreCase("urlToImage")) {
+                    link = result;
+                } else if (name.equalsIgnoreCase("description")) {
+                    description = result;
+                }else if (name.equalsIgnoreCase("publishedAt")) {
+                    publishedAt = result;
+                }
+
+                if (title != null && link != null && description != null) {
+                    if(isItem) {
+                        NewsItem item = new NewsItem();
+                        item.title=title;
+                        item.description=description;
+                        item.urlToImage=link;
+                        items.add(item);
+                    }
+
+
+                    title = null;
+                    link = null;
+                    description = null;
+                    isItem = false;
+                }
+            }
+
+            return items;
+        } finally {
+            inputStream.close();
+        }
     }
 }

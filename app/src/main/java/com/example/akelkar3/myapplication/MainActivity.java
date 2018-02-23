@@ -18,6 +18,7 @@ import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 
 public class MainActivity extends AppCompatActivity implements getData.IData  {
     String TAG="test";
@@ -31,12 +32,26 @@ public class MainActivity extends AppCompatActivity implements getData.IData  {
     TextView date;
     String apiKey="f3e97abda19c49eabbfe788bba799421";
     ArrayList<NewsItem> newsItems =null;
+    final    String[] cat= {"Top Stories","World", "U.S.", "Business", "Politics", "Technology","Health", "Politics", "Entertainment","Travel", "Living","Most Recent"};
+final String[] urls = {"http://rss.cnn.com/rss/cnn_topstories.rss","http://rss.cnn.com/rss/cnn_world.rss","http://rss.cnn.com/rss/cnn_us.rss","http://rss.cnn.com/rss/money_latest.rss","http://rss.cnn.com/rss/cnn_allpolitics.rss","http://rss.cnn.com/rss/cnn_tech.rss","http://rss.cnn.com/rss/cnn_health.rss","http://rss.cnn.com/rss/cnn_showbiz.rss","http://rss.cnn.com/rss/cnn_travel.rss","http://rss.cnn.com/rss/cnn_living.rss","http://rss.cnn.com/rss/cnn_latest.rss"};
 
     int current;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d(TAG, "starting");
+     /*   urls.put(cat[0],"http://rss.cnn.com/rss/cnn_topstories.rss");
+        urls.put(cat[1],"http://rss.cnn.com/rss/cnn_world.rss");
+        urls.put(cat[2],"http://rss.cnn.com/rss/cnn_us.rss");
+        urls.put(cat[3],"http://rss.cnn.com/rss/money_latest.rss");
+        urls.put(cat[4],"http://rss.cnn.com/rss/cnn_allpolitics.rss");
+        urls.put(cat[5],"http://rss.cnn.com/rss/cnn_tech.rss");
+        urls.put(cat[6],"http://rss.cnn.com/rss/cnn_health.rss");
+        urls.put(cat[7],"http://rss.cnn.com/rss/cnn_showbiz.rss");
+        urls.put(cat[8],"http://rss.cnn.com/rss/cnn_travel.rss");
+        urls.put(cat[8],"http://rss.cnn.com/rss/cnn_living.rss");
+        urls.put(cat[9],"http://rss.cnn.com/rss/cnn_latest.rss");*/
 
         next = (ImageButton)findViewById(R.id.btnnext);
         prev = (ImageButton)findViewById(R.id.btnprev);
@@ -46,13 +61,14 @@ public class MainActivity extends AppCompatActivity implements getData.IData  {
         next.setAlpha(0.4f);
         prev.setAlpha(0.4f);
 
+
         findViewById(R.id.btnGo).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "onClick");
                 // new GetSimpleAsync().execute("http://dev.theappsdr.com/apis/photos/keywords.php");
                 final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                final    String[] cat= {"business","entertainment", "general", "health", "science", "sports","technology"};
+
                 builder.setItems(cat, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -60,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements getData.IData  {
                         dialog.cancel();
                         keyword.setText(cat[i]);
                         //   Log.d(TAG, generatedKeywords[i]);
-                        String url="https://newsapi.org/v2/top-headlines";
+                        String url=urls[i];
 
 
                         new getData(MainActivity.this,MainActivity.this).execute( url);
